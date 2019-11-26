@@ -1,14 +1,13 @@
 const { ApolloServer, gql } = require("apollo-server");
-const { buildFederatedSchema } = require("@apollo/federation");
-const { MongoClient } = require('mongodb');
+const mongoFile= require("./config.js");
 
 const typeDefs = gql`
-  extend type Query {
+   type Query {
     getUserbyId(uid:String=""): User!
     getUserbyEmail(email:String=""): User!
   }
 
-  extend type Mutation {
+   type Mutation {
     addUser(uid: String, name: String, email: String, username: String): User!
     updateUserById(uid:String,newName:String,NewEmail:String):User!
     deleteUserbyUid(uid:String):[User]
@@ -46,39 +45,15 @@ const resolvers = {
 };
 
 const server = new ApolloServer({
-  schema: buildFederatedSchema([
-    {
       typeDefs,
       resolvers
-    }
-  ])
-});
-
-async function startMongo() {  
-  const MONGO_DB = "mongodb://localhost:27017/GraphqlPOC";
-
-try {
-  const client = await MongoClient.connect(MONGO_DB, { useNewUrlParser: true })
-  db = client.db()
-} catch (error) {
-  console.log(`
-  
-    Mongo DB Host not found!
-    please add DB_HOST environment variable to .env file
-
-    exiting...
-     
-  `)
-  process.exit(1)
-}
-}
+})
 
 
+mongoFile.startMongo();
 
-startMongo();
 
-
-server.listen({ port: 4001 }).then(({ url }) => {
+server.listen({ port: 4008 }).then(({ url }) => {
   console.log(`🚀 Server ready at ${url}`);
 });
 

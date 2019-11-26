@@ -1,22 +1,20 @@
 const { ApolloServer, gql } = require("apollo-server");
-const { buildFederatedSchema } = require("@apollo/federation");
-const { MongoClient } = require('mongodb');
+const mongoFile= require("./config.js");
 
 const typeDefs = gql`
-  extend type Query {
+   type Query {
     getSpecificProductByName(name: String=""): Product
-    topProducts(first: Int = 5): [Product]
   }
 
-  extend type Mutation {
+   type Mutation {
     addProduct(upc: String, name: String, price: Int, weight: Int): Product!
-    deleteProductById(upc:String):[Product]
-    updateProductByUPC(upc:String,Newname:String,Newprice:Int,Newweight:Int):Product!
+    deleteProductById(upc:String): [Product]
+    updateProductByUPC(upc:String,Newname:String,Newprice:Int,Newweight:Int): Product!
   }
 
   type Product {
     upc: String!
-    name: String
+    name: String!
     price: Int
     weight: Int
   }
@@ -26,9 +24,6 @@ const resolvers = {
     Query: {
       getSpecificProductByName(_, args) {
         return getProductByName(args.name);
-      },
-      topProducts(_, args,{products}) {
-        return products.slice(0,args.first);
       }
   },
   Mutation:{
@@ -45,44 +40,14 @@ const resolvers = {
   }
 };
 
-let db
-
-async function startMongo() {  
-  const MONGO_DB = "mongodb://localhost:27017/GraphqlPOC";
-
-try {
-  const client = await MongoClient.connect(MONGO_DB, { useNewUrlParser: true })
- // console.log("Db is started",client);
-  db = client.db()
-} catch (error) {
-  console.log(`
-  
-    Mongo DB Host not found!
-    please add DB_HOST environment variable to .env file
-
-    exiting...
-     
-  `)
-  process.exit(1)
-}
-}
-
-startMongo();
+mongoFile.startMongo();
 
 const server = new ApolloServer({
-  schema: buildFederatedSchema([
-    {
       typeDefs,
       resolvers
-    }
-  ]),
-  context: async () => {
-    const products =  await db.collection('products').find().toArray();
-    return {db,products}
-  }
 });
 
-server.listen({ port: 4010 }).then(({ url }) => {
+server.listen({ port: 4014 }).then(({ url }) => {
   console.log(`🚀 Server ready at ${url}`);
 });
 

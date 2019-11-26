@@ -1,6 +1,5 @@
 const { ApolloServer, gql } = require("apollo-server");
-const { buildFederatedSchema } = require("@apollo/federation");
-const { MongoClient } = require('mongodb');
+const mongofile = require("./config.js");
 
 const typeDefs = gql`
   type Review  {
@@ -11,13 +10,13 @@ const typeDefs = gql`
     productId: String
   }
 
-  extend type Query{
+   type Query{
     getReviewsByAuthorId(userId: String=""): Review!
     getReviewsByProductId(productId: String=""): Review!
     
   }
 
-  extend type Mutation{
+   type Mutation{
     addReview(rid:String, rating:Int, comments:String, authorID:String, productId:String) : Review!
     deleteReviewByAuthorId(userId:String=""): [Review]
     updateReviewByAuthorId(userId:String="",newRating:Int=0,newComment:String=""): Review!
@@ -35,52 +34,29 @@ const resolvers = {
   },
   Mutation:{
     addReview(_,args){
-      var obj={rid:args.rid,rating:args.rating,comments:args.comments, authorId:args.authorID,
+        var obj={rid:args.rid,rating:args.rating,comments:args.comments, authorId:args.authorID,
         productId:args.productId};
-      return addReviewToDB(obj);
+        return addReviewToDB(obj);
     }, 
     deleteReviewByAuthorId(_,args){
-      return deleteReviewByAuthorIdFromDb(args.userId);
+        return deleteReviewByAuthorIdFromDb(args.userId);
     },
     updateReviewByAuthorId(_,args){
-      
-      updateReviewForUserId(args.userId,args.newRating,args.newComment);
+        return  updateReviewForUserId(args.userId,args.newRating,args.newComment);
     }
   }
 };
 
 const server = new ApolloServer({
-  schema: buildFederatedSchema([
-    {
       typeDefs,
       resolvers
-    }
-  ])
 });
 
 
-async function startMongo() {  
-  const MONGO_DB = "mongodb://localhost:27017/GraphqlPOC";
+//start mongodb connection here
+mongofile.startMongo();
 
-try {
-  const client = await MongoClient.connect(MONGO_DB, { useNewUrlParser: true })
-  db = client.db()
-} catch (error) {
-  console.log(`
-  
-    Mongo DB Host not found!
-    please add DB_HOST environment variable to .env file
-
-    exiting...
-     
-  `)
-  process.exit(1)
-}
-}
-
-startMongo();
-
-server.listen({ port: 4002 }).then(({ url }) => {
+server.listen({ port: 4015 }).then(({ url }) => {
   console.log(`🚀 Server ready at ${url}`);
 });
 
