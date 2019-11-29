@@ -1,0 +1,15 @@
+{
+    "name": "reviews",
+    "scripts": {
+      "start": "node index.js"
+    },
+    "dependencies": {
+      "apollo-server-express": "^2.4.8",
+      "express": "^4.16.4",
+      "graphql-stitcher": "beta",
+      "graphql-tools":"latest",
+      "apollo-link-http":"latest",
+      "node-fetch": "latest"
+    }
+  }
+  

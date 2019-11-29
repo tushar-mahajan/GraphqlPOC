@@ -1,7 +1,9 @@
 const { ApolloServer, gql } = require("apollo-server");
 const mongoFile= require("./config.js");
+const {makeExecutableSchema,mergeSchemas} = require('graphql-tools');
 
-const typeDefs = gql`
+const userSchema = makeExecutableSchema({
+  typeDefs: gql`
    type Query {
     getUserbyId(uid:String=""): User!
     getUserbyEmail(email:String=""): User!
@@ -19,9 +21,12 @@ const typeDefs = gql`
     email: String
     username: String
   }
-`;
+`});
 
-const resolvers = {
+
+const schema = mergeSchemas({
+schemas:[userSchema],
+ resolvers : {
   Query: {
     getUserbyId(_,args) {
           return returnUserByUid(args.uid);
@@ -42,19 +47,18 @@ const resolvers = {
       return deleteUserbyUid(args.uid);
     }
   }
-};
+}
 
-const server = new ApolloServer({
-      typeDefs,
-      resolvers
-})
+});
+
+const server = new ApolloServer({ schema });
 
 
 mongoFile.startMongo();
 
 
 server.listen({ port: 4008 }).then(({ url }) => {
-  console.log(`🚀 Server ready at ${url}`);
+  console.log(` Server ready at ${url}`);
 });
 
 

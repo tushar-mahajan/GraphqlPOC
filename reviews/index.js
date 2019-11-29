@@ -1,7 +1,9 @@
 const { ApolloServer, gql } = require("apollo-server");
 const mongofile = require("./config.js");
+const {makeExecutableSchema,mergeSchemas} = require('graphql-tools');
 
-const typeDefs = gql`
+const reviewSchema = makeExecutableSchema({
+  typeDefs : gql`
   type Review  {
     rid: ID!
     rating: Int
@@ -21,9 +23,11 @@ const typeDefs = gql`
     deleteReviewByAuthorId(userId:String=""): [Review]
     updateReviewByAuthorId(userId:String="",newRating:Int=0,newComment:String=""): Review!
   }
-`;
+`});
 
-const resolvers = {
+const schema = mergeSchemas({
+  schemas:[reviewSchema],
+  resolvers : {
   Query:{
     getReviewsByAuthorId(_,args){
       return getReviewsByAuthorIdFromDb(args.userId);
@@ -45,11 +49,12 @@ const resolvers = {
         return  updateReviewForUserId(args.userId,args.newRating,args.newComment);
     }
   }
-};
+}
+})
+
 
 const server = new ApolloServer({
-      typeDefs,
-      resolvers
+      schema
 });
 
 

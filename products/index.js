@@ -1,9 +1,12 @@
 const { ApolloServer, gql } = require("apollo-server");
 const mongoFile= require("./config.js");
+const {makeExecutableSchema,mergeSchemas} = require('graphql-tools');
 
-const typeDefs = gql`
+const productSchema = makeExecutableSchema({
+   typeDefs : gql`
    type Query {
     getSpecificProductByName(name: String=""): Product
+    getSpecificProductByUPC(upc: String=""):Product
   }
 
    type Mutation {
@@ -18,12 +21,17 @@ const typeDefs = gql`
     price: Int
     weight: Int
   }
-`;
+`});
 
-const resolvers = {
+const schema = mergeSchemas({
+  schemas:[productSchema],
+  resolvers : {
     Query: {
       getSpecificProductByName(_, args) {
         return getProductByName(args.name);
+      },
+      getSpecificProductByUPC(_,args){
+        return getSpecificProductByUPC(args.upc);
       }
   },
   Mutation:{
@@ -38,13 +46,13 @@ const resolvers = {
       return deleteProductByIdFromDb(args.upc);
     }
   }
-};
+}
+})
 
 mongoFile.startMongo();
 
 const server = new ApolloServer({
-      typeDefs,
-      resolvers
+      schema
 });
 
 server.listen({ port: 4014 }).then(({ url }) => {
@@ -86,4 +94,9 @@ async function updateProductByUPC(upcval,nameval,priceval,weightval){
 async function deleteProductByIdFromDb(uidval){
   db.collection('products').remove({upc:uidval});
   return getAllProductsInDb();
+}
+
+async function getSpecificProductByUPC(val){
+  var product = await db.collection('products').findOne({upc:val});
+  return product;
 }
