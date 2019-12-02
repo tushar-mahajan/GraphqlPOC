@@ -1,22 +1,30 @@
 const { ApolloServer, gql } = require("apollo-server");
 const mongoFile= require("./config.js");
+const { buildFederatedSchema } = require('@apollo/federation');
 
 const typeDefs = gql`
-   type Query {
+   extend type Query {
     getSpecificProductByName(name: String=""): Product
   }
 
-   type Mutation {
+   extend type Mutation {
     addProduct(upc: String, name: String, price: Int, weight: Int): Product!
     deleteProductById(upc:String): [Product]
     updateProductByUPC(upc:String,Newname:String,Newprice:Int,Newweight:Int): Product!
   }
 
-  type Product {
+  type Product @key(fields:"upc"){
     upc: String!
     name: String!
     price: Int
     weight: Int
+  }
+
+  extend type Review @key(fields:"rid"){
+    rid: ID! @external
+    productId: String @external
+    product:Product @requires(fields:"productId")
+    
   }
 `;
 
@@ -37,14 +45,23 @@ const resolvers = {
     deleteProductById(_,args){
       return deleteProductByIdFromDb(args.upc);
     }
+  },
+  Review: {
+    product: ({productId}) => {
+      return getProductByUpc(productId);
+    },
   }
 };
 
 mongoFile.startMongo();
 
 const server = new ApolloServer({
+  schema: buildFederatedSchema([
+    {
       typeDefs,
       resolvers
+    },
+  ]),
 });
 
 server.listen({ port: 4014 }).then(({ url }) => {
@@ -66,6 +83,13 @@ async function getProductByName(val) {
   return product;
   
 }
+
+async function getProductByUpc(val) {
+  var product = await db.collection('products').findOne({upc:val});
+  console.log(product);
+   return product;
+   
+ }
 
 async function getAllProductsInDb(){
   

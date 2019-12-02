@@ -1,8 +1,9 @@
 const { ApolloServer, gql } = require("apollo-server");
 const mongofile = require("./config.js");
+const { buildFederatedSchema } = require('@apollo/federation');
 
 const typeDefs = gql`
-  type Review  {
+   type Review @key(fields:"rid")  {
     rid: ID!
     rating: Int
     comments: String
@@ -10,20 +11,34 @@ const typeDefs = gql`
     productId: String
   }
 
-   type Query{
-    getReviewsByAuthorId(userId: String=""): Review!
-    getReviewsByProductId(productId: String=""): Review!
+
+
+   extend type Query{
+    getReviewsByAuthorId(userId: String=""): [Review]!
+    getReviewsByProductId(productId: String=""): [Review]!
     
   }
 
-   type Mutation{
+   extend type Mutation{
     addReview(rid:String, rating:Int, comments:String, authorID:String, productId:String) : Review!
     deleteReviewByAuthorId(userId:String=""): [Review]
     updateReviewByAuthorId(userId:String="",newRating:Int=0,newComment:String=""): Review!
   }
+
+  extend type Product @key(fields:"upc"){
+    upc: String! @external
+    addreview(rid:ID!,rating:Int,comments:String,authorId:String): Review @requires(fields: "upc")
+  }
 `;
 
 const resolvers = {
+  Product:{
+    addreview:({upc},args) => {
+      var obj={rid:args.rid,rating:args.rating,comments:args.comments, authorId:args.authorId, productId:upc};
+      console.log("mututation object is :",obj);
+      return addReviewToDB(obj);
+    },
+  },
   Query:{
     getReviewsByAuthorId(_,args){
       return getReviewsByAuthorIdFromDb(args.userId);
@@ -48,9 +63,14 @@ const resolvers = {
 };
 
 const server = new ApolloServer({
+  schema: buildFederatedSchema([
+    {
       typeDefs,
       resolvers
+    },
+  ]),
 });
+
 
 
 //start mongodb connection here
@@ -64,12 +84,12 @@ server.listen({ port: 4015 }).then(({ url }) => {
 // implementations to mutations and queries begin here
 
 async function getReviewsByAuthorIdFromDb(val){
-  const review = await db.collection('review').findOne({authorId:val});
+  const review = await db.collection('review').find({authorId:val}).toArray();
   return review;
 }
 
 async function getReviewsByProductIdFromDb(val){
-  const review = await db.collection('review').findOne({productId:val});
+  const review = await db.collection('review').find({productId:val}).toArray();
   return review;
 }
 
