@@ -13,8 +13,8 @@ const reviewSchema = makeExecutableSchema({
   }
 
    type Query{
-    getReviewsByAuthorId(userId: String=""): Review!
-    getReviewsByProductId(productId: String=""): Review!
+    getReviewsByAuthorId(userId: String=""): [Review]
+    getReviewsByProductId(productId: String=""): [Review]
     
   }
 
@@ -69,13 +69,13 @@ server.listen({ port: 4015 }).then(({ url }) => {
 // implementations to mutations and queries begin here
 
 async function getReviewsByAuthorIdFromDb(val){
-  const review = await db.collection('review').findOne({authorId:val});
-  return review;
+  console.log(val + "is value of author ID ");
+  return await db.collection('review').find({authorId:val}).toArray();
+  
 }
 
 async function getReviewsByProductIdFromDb(val){
-  const review = await db.collection('review').findOne({productId:val});
-  return review;
+  return await db.collection('review').find({productId:val}).toArray();
 }
 
 async function addReviewToDB(myobj){

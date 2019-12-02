@@ -92,6 +92,12 @@ const port = 3001;
       UserMutation(uid:ID!, name:String, email:String, username:String): User
       ReviewMutation(rid:String, rating:Int, comments:String, authorId:String): Review
     }
+
+    extend type User{
+      GetReviews:[Review]
+    }
+    
+       
   `;
     
 
@@ -104,6 +110,22 @@ const port = 3001;
           linkTypeDefs,
         ],
         resolvers: {
+          User:{
+              GetReviews:{
+                resolve(user, args , context, info) {                  
+                return info.mergeInfo.delegateToSchema({
+                  schema: reviewServiceSchema,
+                  operation: 'query',
+                  fieldName: 'getReviewsByAuthorId',
+                  args:{
+                    userId: user.uid
+                  },
+                  context,
+                  info,
+                });
+              },
+            },
+          },
             Review: {
               products: {
                 fragment: `... on Review { productId }`,
